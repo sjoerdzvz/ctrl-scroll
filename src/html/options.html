@@ -178,18 +178,35 @@
             margin-top: 30px;
         }
         
-        #status {
-            padding: 12px;
-            border-radius: 6px;
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 12px 20px;
+            border-radius: 8px;
             font-size: 13px;
-            margin-bottom: 20px;
-            display: none;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+            z-index: 9999;
         }
         
-        #status.success {
-            background: #e8f5e9;
-            color: #2e7d32;
-            display: block;
+        #toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        #toast.success {
+            background: #1a1a1a;
+            color: #fff;
+        }
+        
+        #toast.error {
+            background: #c0392b;
+            color: #fff;
         }
         
         .footer {
@@ -218,29 +235,40 @@
             <p class="subtitle">Customize your Zzinnovate zoom experience</p>
         </header>
         
-        <div id="status"></div>
-        
         <form id="settingsForm">
-            <!-- Zoom Ranges -->
+            <!-- Scroll Modifier Key -->
             <div class="settings-group">
-                <h2 class="section-title">Zoom Range</h2>
+                <h2 class="section-title">Scroll Modifier Key</h2>
                 
                 <div class="setting">
-                    <div class="label-row">
-                        <label for="minZoom">Minimum Zoom</label>
-                        <span class="value"><span id="minZoomValue">50</span>%</span>
+                    <label>Which key to hold while scrolling</label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="modCtrl" name="modifierKey" value="ctrlKey">
+                            <label for="modCtrl" style="margin-bottom: 0;">Ctrl (Windows/Linux)</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="modAlt" name="modifierKey" value="altKey">
+                            <label for="modAlt" style="margin-bottom: 0;">Alt / Option (⌥)</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="modCmd" name="modifierKey" value="metaKey">
+                            <label for="modCmd" style="margin-bottom: 0;">Cmd (⌘ macOS)</label>
+                        </div>
                     </div>
-                    <input type="range" id="minZoom" min="10" max="100" value="50" step="10">
-                    <p class="helper-text">Lowest zoom level allowed (10% - 100%)</p>
                 </div>
+            </div>
+            
+            <!-- Scroll Direction -->
+            <div class="settings-group">
+                <h2 class="section-title">Scroll Direction</h2>
                 
                 <div class="setting">
-                    <div class="label-row">
-                        <label for="maxZoom">Maximum Zoom</label>
-                        <span class="value"><span id="maxZoomValue">300</span>%</span>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="invertScroll">
+                        <label for="invertScroll" style="margin-bottom: 0;">Inverted (scroll down = zoom in) 🙃</label>
                     </div>
-                    <input type="range" id="maxZoom" min="100" max="500" value="300" step="10">
-                    <p class="helper-text">Highest zoom level allowed (100% - 500%)</p>
+                    <p class="helper-text">Enable for upside-down scrolling behavior</p>
                 </div>
             </div>
             
@@ -251,9 +279,9 @@
                 <div class="setting">
                     <div class="label-row">
                         <label for="step">Per Scroll Increment</label>
-                        <span class="value"><span id="stepValue">10</span>%</span>
+                        <span class="value"><span id="stepValue">5</span>%</span>
                     </div>
-                    <input type="range" id="step" min="1" max="50" value="10" step="1">
+                    <input type="range" id="step" min="1" max="50" value="5" step="1">
                     <p class="helper-text">How much zoom changes per scroll tick (1% - 50%)</p>
                 </div>
             </div>
@@ -272,28 +300,32 @@
                 </div>
             </div>
             
-            <!-- Features -->
+            <!-- Zoom Range -->
             <div class="settings-group">
-                <h2 class="section-title">Features</h2>
+                <h2 class="section-title">Zoom Range</h2>
                 
                 <div class="setting">
-                    <label>Scroll Modifier Key</label>
-                    <div class="radio-group">
-                        <div class="radio-option">
-                            <input type="radio" id="modCtrl" name="modifierKey" value="ctrlKey">
-                            <label for="modCtrl" style="margin-bottom: 0;">Ctrl (Windows/Linux)</label>
-                        </div>
-                        <div class="radio-option">
-                            <input type="radio" id="modAlt" name="modifierKey" value="altKey">
-                            <label for="modAlt" style="margin-bottom: 0;">Alt / Option (⌥)</label>
-                        </div>
-                        <div class="radio-option">
-                            <input type="radio" id="modCmd" name="modifierKey" value="metaKey">
-                            <label for="modCmd" style="margin-bottom: 0;">Cmd (⌘ macOS)</label>
-                        </div>
+                    <div class="label-row">
+                        <label for="minZoom">Minimum Zoom</label>
+                        <span class="value"><span id="minZoomValue">50</span>%</span>
                     </div>
-                    <p class="helper-text">Choose which key to hold while scrolling to zoom</p>
+                    <input type="range" id="minZoom" min="10" max="100" value="50" step="10">
+                    <p class="helper-text">Lowest zoom level allowed (10% - 100%)</p>
                 </div>
+                
+                <div class="setting">
+                    <div class="label-row">
+                        <label for="maxZoom">Maximum Zoom</label>
+                        <span class="value"><span id="maxZoomValue">200</span>%</span>
+                    </div>
+                    <input type="range" id="maxZoom" min="100" max="500" value="200" step="10">
+                    <p class="helper-text">Highest zoom level allowed (100% - 500%)</p>
+                </div>
+            </div>
+            
+            <!-- Remember Zoom -->
+            <div class="settings-group">
+                <h2 class="section-title">Memory</h2>
                 
                 <div class="setting">
                     <div class="checkbox-group">
@@ -318,6 +350,7 @@
         </div>
     </div>
     
-    <script src="options.js"></script>
+    <div id="toast"></div>
+    <script src="../js/options.js"></script>
 </body>
 </html>

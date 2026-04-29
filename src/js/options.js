@@ -1,244 +1,181 @@
 /**
  * Zzinnovate: Command+Scroll Zoom
  * Settings Page - Configuration Manager
- * 
+ *
  * UI controller for zoom settings with real-time updates
  */
 
-// Detect platform for smart defaults
 const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform);
 
 const DEFAULTS = Object.freeze({
+  modifierKey: 'metaKey',
+  zoomStep: 0.05,
+  animationSmoothing: 0.35,
   minZoom: 0.5,
-  maxZoom: 3.0,
-  step: 0.1,
-  smoothing: 0.35,
-  modifierKey: isMac ? 'metaKey' : 'ctrlKey',  // Cmd on Mac, Ctrl everywhere else
-  rememberZoom: true
-});
-
-const CONSTRAINTS = Object.freeze({
-  minZoomRange: [0.1, 1.0],
-  maxZoomRange: [1.0, 5.0],
-  stepRange: [0.01, 0.5],
-  smoothingRange: [0.0, 1.0]
+  maxZoom: 2.0,
+  persistZoomPerDomain: true,
+  invertScroll: false
 });
 
 class SettingsManager {
   constructor() {
     this.dom = this.cacheElements();
     this.current = {};
-    
+
     this.registerListeners();
     this.loadSettings();
   }
-  
-  /**
-   * Cache DOM elements for performance
-   */
+
   cacheElements() {
     return {
       form: document.getElementById('settingsForm'),
-      statusBox: document.getElementById('status'),
+      statusBox: document.getElementById('toast'),
       resetBtn: document.getElementById('resetBtn'),
-      
+
       inputs: {
-        minZoom: document.getElementById('minZoom'),
-        maxZoom: document.getElementById('maxZoom'),
+        modifierKey: document.querySelectorAll('input[name="modifierKey"]'),
         step: document.getElementById('step'),
         smoothing: document.getElementById('smoothing'),
-        modifierKey: document.querySelectorAll('input[name="modifierKey"]'),
-        rememberZoom: document.getElementById('rememberZoom')
+        minZoom: document.getElementById('minZoom'),
+        maxZoom: document.getElementById('maxZoom'),
+        rememberZoom: document.getElementById('rememberZoom'),
+        invertScroll: document.getElementById('invertScroll')
       },
-      
+
       displays: {
-        minZoom: document.getElementById('minZoomValue'),
-        maxZoom: document.getElementById('maxZoomValue'),
         step: document.getElementById('stepValue'),
-        smoothing: document.getElementById('smoothingValue')
+        smoothing: document.getElementById('smoothingValue'),
+        minZoom: document.getElementById('minZoomValue'),
+        maxZoom: document.getElementById('maxZoomValue')
       }
     };
   }
-  
-  /**
-   * Bind all event listeners
-   */
+
   registerListeners() {
-    // Form submission
     this.dom.form.addEventListener('submit', (e) => {
       e.preventDefault();
       this.handleSave();
     });
-    
-    // Reset button
+
     this.dom.resetBtn.addEventListener('click', () => this.handleReset());
-    
-    // Live value updates on input
-    ['minZoom', 'maxZoom', 'step', 'smoothing', 'rememberZoom'].forEach(key => {
+
+    // Sliders: update display live only
+    ['step', 'smoothing', 'minZoom', 'maxZoom'].forEach(key => {
       const input = this.dom.inputs[key];
       if (input) {
         input.addEventListener('input', () => this.updateDisplayValues());
       }
     });
-    
-    // Modifier key radio buttons
-    this.dom.inputs.modifierKey.forEach(radio => {
-      radio.addEventListener('change', () => this.updateDisplayValues());
-    });
   }
-  
-  /**
-   * Load settings from storage and update UI
-   */
+
   loadSettings() {
     chrome.storage.sync.get(DEFAULTS, (data) => {
       this.current = data;
       this.renderUI();
     });
   }
-  
-  /**
-   * Render settings into form controls
-   */
+
   renderUI() {
+    this.dom.inputs.step.value = Math.round(this.current.zoomStep * 100);
+    this.dom.inputs.smoothing.value = Math.round(this.current.animationSmoothing * 100);
     this.dom.inputs.minZoom.value = Math.round(this.current.minZoom * 100);
     this.dom.inputs.maxZoom.value = Math.round(this.current.maxZoom * 100);
-    this.dom.inputs.step.value = Math.round(this.current.step * 100);
-    this.dom.inputs.smoothing.value = Math.round(this.current.smoothing * 100);
-    this.dom.inputs.rememberZoom.checked = this.current.rememberZoom;
-    
-    // Set the correct modifier key radio button
+    this.dom.inputs.rememberZoom.checked = this.current.persistZoomPerDomain;
+    this.dom.inputs.invertScroll.checked = this.current.invertScroll;
+
     this.dom.inputs.modifierKey.forEach(radio => {
       radio.checked = radio.value === this.current.modifierKey;
     });
-    
+
     this.updateDisplayValues();
   }
-  
-  /**
-   * Update live display values
-   */
+
   updateDisplayValues() {
-    this.dom.displays.minZoom.textContent = this.dom.inputs.minZoom.value;
-    this.dom.displays.maxZoom.textContent = this.dom.inputs.maxZoom.value;
     this.dom.displays.step.textContent = this.dom.inputs.step.value;
     this.dom.displays.smoothing.textContent = this.dom.inputs.smoothing.value;
+    this.dom.displays.minZoom.textContent = this.dom.inputs.minZoom.value;
+    this.dom.displays.maxZoom.textContent = this.dom.inputs.maxZoom.value;
   }
-  
-  /**
-   * Collect and validate form data
-   */
+
   collectFormData() {
-    // Get selected modifier key
     const selectedModifier = Array.from(this.dom.inputs.modifierKey).find(
       radio => radio.checked
-    )?.value || 'ctrlKey';
-    
-    const payload = {
+    )?.value || 'metaKey';
+
+    return {
+      modifierKey: selectedModifier,
+      zoomStep: parseInt(this.dom.inputs.step.value) / 100,
+      animationSmoothing: parseInt(this.dom.inputs.smoothing.value) / 100,
       minZoom: parseInt(this.dom.inputs.minZoom.value) / 100,
       maxZoom: parseInt(this.dom.inputs.maxZoom.value) / 100,
-      step: parseInt(this.dom.inputs.step.value) / 100,
-      smoothing: parseInt(this.dom.inputs.smoothing.value) / 100,
-      modifierKey: selectedModifier,
-      rememberZoom: this.dom.inputs.rememberZoom.checked
+      persistZoomPerDomain: this.dom.inputs.rememberZoom.checked,
+      invertScroll: this.dom.inputs.invertScroll.checked
     };
-    
-    return this.validateSettings(payload);
   }
-  
-  /**
-   * Validate settings constraints
-   */
+
   validateSettings(settings) {
     const errors = [];
-    
+
     if (settings.minZoom >= settings.maxZoom) {
       errors.push('Minimum must be less than maximum');
     }
-    
-    if (settings.step <= 0 || settings.step > 0.5) {
+    if (settings.zoomStep <= 0 || settings.zoomStep > 0.5) {
       errors.push('Step must be between 1% and 50%');
     }
-    
-    if (settings.smoothing < 0 || settings.smoothing > 1) {
+    if (settings.animationSmoothing < 0 || settings.animationSmoothing > 1) {
       errors.push('Smoothing must be between 0% and 100%');
     }
-    
-    return {
-      valid: errors.length === 0,
-      settings: settings,
-      errors: errors
-    };
+
+    return { valid: errors.length === 0, errors };
   }
-  
-  /**
-   * Save settings and notify all tabs
-   */
+
   handleSave() {
-    const validation = this.collectFormData();
-    
+    const settings = this.collectFormData();
+    const validation = this.validateSettings(settings);
+
     if (!validation.valid) {
       this.showMessage(validation.errors.join(', '), false);
       return;
     }
-    
-    chrome.storage.sync.set(validation.settings, () => {
-      this.current = validation.settings;
+
+    chrome.storage.sync.set(settings, () => {
+      this.current = settings;
       this.showMessage('✓ Settings saved!', true);
-      
-      // Broadcast to all content scripts
-      this.notifyAllTabs(validation.settings);
+      this.notifyAllTabs(settings);
     });
   }
-  
-  /**
-   * Handle reset to defaults
-   */
+
   handleReset() {
     if (!confirm('Reset all settings to defaults?')) return;
-    
-    chrome.storage.sync.set(DEFAULTS, () => {
-      this.current = DEFAULTS;
+
+    chrome.storage.sync.set({ ...DEFAULTS }, () => {
+      this.current = { ...DEFAULTS };
       this.renderUI();
       this.showMessage('✓ Reset to defaults!', true);
       this.notifyAllTabs(DEFAULTS);
     });
   }
-  
-  /**
-   * Display status message to user
-   */
+
   showMessage(text, isSuccess) {
-    this.dom.statusBox.textContent = text;
-    this.dom.statusBox.className = isSuccess ? 'success' : 'error';
-    this.dom.statusBox.style.display = 'block';
-    
-    setTimeout(() => {
-      this.dom.statusBox.style.display = 'none';
-    }, 2500);
+    const toast = this.dom.statusBox;
+    toast.textContent = text;
+    toast.className = isSuccess ? 'success show' : 'error show';
+
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => {
+      toast.classList.remove('show');
+    }, 2000);
   }
-  
-  /**
-   * Send settings update to all open tabs
-   */
+
   notifyAllTabs(settings) {
     chrome.tabs.query({}, (tabs) => {
-      const message = {
-        action: 'settingsChanged',
-        settings: settings
-      };
-      
       tabs.forEach(tab => {
-        chrome.tabs.sendMessage(tab.id, message).catch(() => {
-          // Silently ignore if tab has no content script
-        });
+        chrome.tabs.sendMessage(tab.id, { action: 'settingsChanged', settings }).catch(() => {});
       });
     });
   }
 }
 
-// Initialize settings manager when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
   new SettingsManager();
 });
-

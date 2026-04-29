@@ -1,213 +1,122 @@
 /**
  * Zzinnovate: Command+Scroll Zoom
- * Content Script - Zoom Controller
- * 
- * Handles zoom interactions on web pages using keyboard modifiers + scroll
- * Intelligently remembers zoom per domain with cloud sync
+ * Content Script — ZoomController
+ *
+ * Depends on: zoom-utils.js (ZoomUtils, ScrollInputResolver, ZoomAnimator)
  */
 
-// Detect platform for smart defaults
-const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform);
-
 class ZoomController {
+  #config = {
+    modifierKey: 'metaKey',
+    zoomStep: 0.05,
+    animationSmoothing: 0.35,
+    minZoom: 0.5,
+    maxZoom: 2.0,
+    persistZoomPerDomain: true,
+    invertScroll: false
+  };
+
+  #domain;
+  #input;
+  #animator;
+
   constructor() {
-    this.config = {
-      minZoom: 0.5,
-      maxZoom: 3.0,
-      zoomStep: 0.1,
-      animationSmoothing: 0.35,
-      modifierKey: isMac ? 'metaKey' : 'ctrlKey',  // Cmd on Mac, Ctrl elsewhere
-      persistZoomPerDomain: true
-    };
-    
-    this.state = {
-      activeZoom: 1.0,
-      targetZoom: 1.0,
-      isAnimating: false,
-      isReady: false
-    };
-    
-    this.domain = this.extractDomain();
-    
-    this.initialize();
+    this.#domain   = this.#extractDomain();
+    this.#input    = new ScrollInputResolver();
+    this.#animator = new ZoomAnimator(
+      zoom => this.#sendZoom(zoom, null),
+      zoom => this.#sendZoom(zoom, this.#config.persistZoomPerDomain ? this.#domain : null)
+    );
+    this.#init();
   }
-  
-  /**
-   * Extract domain from current URL
-   */
-  extractDomain() {
+
+  #extractDomain() {
     try {
-      const url = new URL(window.location.href);
-      return url.hostname || url.origin;
-    } catch (err) {
-      console.warn('[ZoomController] Could not extract domain:', err);
+      return new URL(window.location.href).hostname || 'unknown';
+    } catch {
       return 'unknown';
     }
   }
-  
-  /**
-   * Load settings from chrome.storage and initialize
-   */
-  async initialize() {
+
+  async #init() {
     try {
-      const stored = await this.loadStorageAsync(this.config);
-      this.config = { ...this.config, ...stored };
-      
-      // Load per-domain zoom if enabled
-      if (this.config.persistZoomPerDomain) {
-        await this.restoreDomainZoom();
-      } else {
-        await this.restoreBrowserZoom();
-      }
-      
-      this.attachEventListeners();
-      this.state.isReady = true;
-      
+      const stored = await ZoomUtils.loadStorage(this.#config);
+      this.#config = { ...this.#config, ...stored };
+      this.#animator.smoothing = this.#config.animationSmoothing;
+
+      await this.#restoreZoom();
+      this.#attachListeners();
     } catch (err) {
-      console.error('[ZoomController] Initialization failed:', err);
+      console.error('[ZoomController] Init failed:', err);
     }
   }
-  
-  /**
-   * Promise wrapper for chrome.storage
-   */
-  loadStorageAsync(defaults) {
-    return new Promise((resolve) => {
-      chrome.storage.sync.get(defaults, (items) => {
-        resolve(items);
-      });
+
+  async #restoreZoom() {
+    const raw = this.#config.persistZoomPerDomain
+      ? await this.#loadDomainZoom()
+      : await this.#loadBrowserZoom();
+
+    const zoom = ZoomUtils.constrain(
+      ZoomUtils.snap(raw ?? 1.0),
+      this.#config.minZoom,
+      this.#config.maxZoom
+    );
+
+    this.#animator.sync(zoom);
+    if (raw != null) this.#sendZoom(zoom, null);
+  }
+
+  #loadBrowserZoom() {
+    return new Promise(resolve => {
+      chrome.runtime.sendMessage({ action: 'getZoom' }, r => resolve(r?.zoomLevel ?? null));
     });
   }
-  
-  /**
-   * Restore zoom level from browser
-   */
-  async restoreBrowserZoom() {
-    return new Promise((resolve) => {
-      chrome.runtime.sendMessage({ action: 'getZoom' }, (response) => {
-        if (response?.zoomLevel) {
-          this.state.activeZoom = this.constrainZoom(response.zoomLevel);
-          this.state.targetZoom = this.state.activeZoom;
-        }
-        resolve();
-      });
+
+  #loadDomainZoom() {
+    const key = `domain_zoom:${this.#domain}`;
+    return new Promise(resolve => {
+      chrome.storage.sync.get([key], data => resolve(data[key] ?? null));
     });
   }
-  
-  /**
-   * Restore saved zoom for this specific domain
-   */
-  async restoreDomainZoom() {
-    const storageKey = `domain_zoom:${this.domain}`;
-    return new Promise((resolve) => {
-      chrome.storage.sync.get([storageKey], (data) => {
-        if (data[storageKey] !== undefined) {
-          const saved = data[storageKey];
-          this.state.activeZoom = this.constrainZoom(saved);
-          this.state.targetZoom = this.state.activeZoom;
-          this.applyZoom();
-        } else {
-          this.restoreBrowserZoom().then(resolve);
-        }
-        resolve();
-      });
-    });
+
+  #attachListeners() {
+    document.addEventListener('wheel', e => this.#onWheel(e), { passive: false });
+    chrome.runtime.onMessage.addListener((msg, _, reply) => this.#onMessage(msg, reply));
   }
-  
-  /**
-   * Constrain zoom value within configured bounds
-   */
-  constrainZoom(value) {
-    return Math.max(this.config.minZoom, Math.min(this.config.maxZoom, value));
-  }
-  
-  /**
-   * Attach wheel event listener with non-passive flag
-   */
-  attachEventListeners() {
-    document.addEventListener('wheel', (e) => this.handleZoomScroll(e), {
-      passive: false
-    });
-    
-    chrome.runtime.onMessage.addListener((msg, sender, reply) => {
-      this.handleMessageFromBackground(msg, reply);
-    });
-  }
-  
-  /**
-   * Handle zoom scroll events
-   */
-  handleZoomScroll(event) {
-    // Check if modifier key is pressed
-    if (!event[this.config.modifierKey]) return;
-    
+
+  #onWheel(event) {
+    if (!event[this.#config.modifierKey]) return;
     event.preventDefault();
-    
-    // Determine direction and calculate new zoom
-    const direction = event.deltaY > 0 ? -1 : 1;
-    const newZoom = this.state.targetZoom + (direction * this.config.zoomStep);
-    this.state.targetZoom = this.constrainZoom(newZoom);
-    
-    // Begin animation if not already animating
-    if (!this.state.isAnimating) {
-      this.state.isAnimating = true;
-      this.animate();
-    }
+
+    const direction = this.#input.resolve(event, this.#config.invertScroll);
+    if (direction === null) return;
+
+    const raw  = this.#animator.target + direction * this.#config.zoomStep;
+    const zoom = ZoomUtils.constrain(
+      ZoomUtils.snap(raw),
+      this.#config.minZoom,
+      this.#config.maxZoom
+    );
+
+    this.#animator.setTarget(zoom);
   }
-  
-  /**
-   * Smooth zoom animation using RAF
-   */
-  animate() {
-    const diff = this.state.targetZoom - this.state.activeZoom;
-    
-    if (Math.abs(diff) < 0.001) {
-      // Animation complete
-      this.state.activeZoom = this.state.targetZoom;
-      this.state.isAnimating = false;
-      this.applyZoom();
-      return;
-    }
-    
-    // Apply easing
-    this.state.activeZoom += diff * this.config.animationSmoothing;
-    this.applyZoom();
-    
-    // Continue animation loop
-    requestAnimationFrame(() => this.animate());
+
+  #sendZoom(zoomLevel, domain) {
+    chrome.runtime.sendMessage({ action: 'setZoom', zoomLevel, domain });
   }
-  
-  /**
-   * Apply zoom level to browser and save
-   */
-  applyZoom() {
-    const payload = {
-      action: 'setZoom',
-      zoomLevel: this.state.activeZoom,
-      domain: this.config.persistZoomPerDomain ? this.domain : null
-    };
-    
-    chrome.runtime.sendMessage(payload);
-  }
-  
-  /**
-   * Handle messages from background/options
-   */
-  handleMessageFromBackground(message, sendResponse) {
+
+  #onMessage(message, sendResponse) {
     if (message.action === 'settingsChanged') {
-      this.config = { ...this.config, ...message.settings };
+      this.#config = { ...this.#config, ...message.settings };
+      this.#animator.smoothing = this.#config.animationSmoothing;
+      this.#input.reset();
       sendResponse({ status: 'acknowledged' });
     }
   }
 }
 
-// Initialize the zoom controller when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    new ZoomController();
-  });
+  document.addEventListener('DOMContentLoaded', () => new ZoomController());
 } else {
   new ZoomController();
 }
-
-
