@@ -79,7 +79,7 @@ class ZoomController {
   #loadDomainZoom() {
     const key = `domain_zoom:${this.#domain}`;
     return new Promise(resolve => {
-      chrome.storage.sync.get([key], data => resolve(data[key] ?? null));
+      chrome.storage.local.get([key], localData => resolve(localData[key] ?? null));
     });
   }
 
