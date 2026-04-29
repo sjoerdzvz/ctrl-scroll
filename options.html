@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zzinnovate Zoom Settings</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f8f9fa;
+            color: #1f1f1f;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+        }
+        
+        header {
+            margin-bottom: 30px;
+            border-bottom: 2px solid #5BA3F5;
+            padding-bottom: 20px;
+        }
+        
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #0052CC;
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .settings-group {
+            margin-bottom: 30px;
+        }
+        
+        .setting {
+            margin-bottom: 24px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #1f1f1f;
+            font-size: 14px;
+        }
+        
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .value {
+            color: #0052CC;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e0e0e0;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #5BA3F5;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 82, 204, 0.3);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #5BA3F5;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 82, 204, 0.3);
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #5BA3F5;
+        }
+        
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #5BA3F5;
+        }
+        
+        .helper-text {
+            font-size: 12px;
+            color: #999;
+            margin-top: 6px;
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #0052CC;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        button {
+            background: #0052CC;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        button:hover {
+            background: #003d99;
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+        
+        #status {
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        #status.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            display: block;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 12px;
+            color: #999;
+            text-align: center;
+        }
+        
+        a {
+            color: #5BA3F5;
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚙️ Zoom Settings</h1>
+            <p class="subtitle">Customize your Zzinnovate zoom experience</p>
+        </header>
+        
+        <div id="status"></div>
+        
+        <form id="settingsForm">
+            <!-- Zoom Ranges -->
+            <div class="settings-group">
+                <h2 class="section-title">Zoom Range</h2>
+                
+                <div class="setting">
+                    <div class="label-row">
+                        <label for="minZoom">Minimum Zoom</label>
+                        <span class="value"><span id="minZoomValue">50</span>%</span>
+                    </div>
+                    <input type="range" id="minZoom" min="10" max="100" value="50" step="10">
+                    <p class="helper-text">Lowest zoom level allowed (10% - 100%)</p>
+                </div>
+                
+                <div class="setting">
+                    <div class="label-row">
+                        <label for="maxZoom">Maximum Zoom</label>
+                        <span class="value"><span id="maxZoomValue">300</span>%</span>
+                    </div>
+                    <input type="range" id="maxZoom" min="100" max="500" value="300" step="10">
+                    <p class="helper-text">Highest zoom level allowed (100% - 500%)</p>
+                </div>
+            </div>
+            
+            <!-- Zoom Step -->
+            <div class="settings-group">
+                <h2 class="section-title">Zoom Step</h2>
+                
+                <div class="setting">
+                    <div class="label-row">
+                        <label for="step">Per Scroll Increment</label>
+                        <span class="value"><span id="stepValue">10</span>%</span>
+                    </div>
+                    <input type="range" id="step" min="1" max="50" value="10" step="1">
+                    <p class="helper-text">How much zoom changes per scroll tick (1% - 50%)</p>
+                </div>
+            </div>
+            
+            <!-- Animation -->
+            <div class="settings-group">
+                <h2 class="section-title">Animation</h2>
+                
+                <div class="setting">
+                    <div class="label-row">
+                        <label for="smoothing">Smoothness</label>
+                        <span class="value"><span id="smoothingValue">35</span>%</span>
+                    </div>
+                    <input type="range" id="smoothing" min="0" max="100" value="35" step="5">
+                    <p class="helper-text">Higher = smoother but slower. Lower = snappier. (0% - 100%)</p>
+                </div>
+            </div>
+            
+            <!-- Features -->
+            <div class="settings-group">
+                <h2 class="section-title">Features</h2>
+                
+                <div class="setting">
+                    <label>Scroll Modifier Key</label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="modCtrl" name="modifierKey" value="ctrlKey">
+                            <label for="modCtrl" style="margin-bottom: 0;">Ctrl (Windows/Linux)</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="modAlt" name="modifierKey" value="altKey">
+                            <label for="modAlt" style="margin-bottom: 0;">Alt / Option (⌥)</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="modCmd" name="modifierKey" value="metaKey">
+                            <label for="modCmd" style="margin-bottom: 0;">Cmd (⌘ macOS)</label>
+                        </div>
+                    </div>
+                    <p class="helper-text">Choose which key to hold while scrolling to zoom</p>
+                </div>
+                
+                <div class="setting">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="rememberZoom" checked>
+                        <label for="rememberZoom" style="margin-bottom: 0;">Remember zoom per website</label>
+                    </div>
+                    <p class="helper-text">Keep zoom levels for each site you visit</p>
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="button-group">
+                <button type="button" id="resetBtn">Reset to Defaults</button>
+                <button type="submit">Save Settings</button>
+            </div>
+        </form>
+        
+        <div class="footer">
+            Built by <a href="https://zzinnovate.io" target="_blank">Zzinnovate</a>
+            <br>
+            Where ideas get engineered.
+        </div>
+    </div>
+    
+    <script src="options.js"></script>
+</body>
+</html>
