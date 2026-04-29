@@ -6,21 +6,21 @@
   "homepage_url": "https://zzinnovate.io",
   "permissions": ["storage", "tabs"],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "src/js/background.js"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "js": ["src/js/content.js"],
       "run_at": "document_start"
     }
   ],
-  "options_page": "options.html",
+  "options_page": "src/html/options.html",
   "icons": {
-    "1024": "assets/1024.png",
-    "512": "assets/512.png",
-    "256": "assets/256.png",
-    "128": "assets/128.png",
-    "64": "assets/64.png"
+    "1024": "src/assets/1024.png",
+    "512": "src/assets/512.png",
+    "256": "src/assets/256.png",
+    "128": "src/assets/128.png",
+    "64": "src/assets/64.png"
   }
 }
