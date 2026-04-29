@@ -31,6 +31,8 @@ class ZoomUtils {
 
 class ScrollInputResolver {
   resolve(event, invertScroll) {
+    if (event.deltaY === 0) return 0;
+
     const direction = event.deltaY > 0 ? -1 : 1;
     return invertScroll ? -direction : direction;
   }

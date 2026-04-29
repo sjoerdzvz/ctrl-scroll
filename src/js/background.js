@@ -26,7 +26,7 @@ class ZoomBridge {
   setupMessageHandling() {
     chrome.runtime.onMessage.addListener(
       (request, sender, sendResponse) => {
-        this.routeMessage(request, sender, sendResponse);
+        return this.routeMessage(request, sender, sendResponse);
       }
     );
   }
@@ -39,20 +39,21 @@ class ZoomBridge {
     
     if (!tabId) {
       console.warn('[ZoomBridge] No tab ID in message sender');
-      return;
+      return false;
     }
     
     switch (request.action) {
       case this.messageTypes.GET_ZOOM:
         this.retrieveZoom(tabId, sendResponse);
-        break;
+        return true;
         
       case this.messageTypes.SET_ZOOM:
         this.persistZoom(tabId, request, sendResponse);
-        break;
+        return true;
         
       default:
         console.warn('[ZoomBridge] Unknown action:', request.action);
+        return false;
     }
   }
   

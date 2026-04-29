@@ -56,9 +56,14 @@ class ZoomController {
   }
 
   async #restoreZoom() {
-    const raw = this.#config.persistZoomPerDomain
-      ? await this.#loadDomainZoom()
-      : await this.#loadBrowserZoom();
+    let raw;
+
+    if (this.#config.persistZoomPerDomain) {
+      raw = await this.#loadDomainZoom();
+      if (raw == null) raw = await this.#loadBrowserZoom();
+    } else {
+      raw = await this.#loadBrowserZoom();
+    }
 
     const zoom = ZoomUtils.constrain(
       ZoomUtils.snap(raw ?? 1.0),
