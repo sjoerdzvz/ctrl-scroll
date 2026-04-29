@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Zzinnovate: Command+Scroll Zoom",
-  "version": "2.0.0",
-  "description": "Smoothly zoom in and out web pages using Cmd+Scroll. Cross-platform with settings and per-site memory.",
-  "homepage_url": "https://zzinnovate.io",
+  "version": "1.0.0",
+  "description": "Zoom web pages smoothly with any modifier key—Cmd, Ctrl, Alt, or Option—plus scroll wheel. Customize per preference, remember zoom per website, and enjoy fluid 60fps animations.",
+  "homepage_url": "https://zzinnovate.com",
   "permissions": ["storage", "tabs"],
   "background": {
     "service_worker": "src/js/background.js"
