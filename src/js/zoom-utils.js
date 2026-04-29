@@ -43,25 +43,22 @@ class ScrollInputResolver {
   static #THRESHOLD = 40; // pixels to accumulate before triggering a zoom step
 
   /**
-   * Resolve a wheel event to a zoom direction.
-   * Returns +1 (zoom in), -1 (zoom out), or null (not enough input yet).
+   * Returns { direction: +1|-1, isTrackpad: boolean } or null.
    */
-  resolve(event, invertScroll) {
+  resolve(event, invertMouse, invertTrackpad) {
+    const isTrackpad = ZoomUtils.isTrackpad(event);
     let direction;
 
-    if (ZoomUtils.isTrackpad(event)) {
-      // Accumulate small trackpad deltas until threshold is reached.
-      // With macOS natural scroll: fingers up → deltaY < 0 → zoom in.
+    if (isTrackpad) {
       this.#accum += event.deltaY;
       if (Math.abs(this.#accum) < ScrollInputResolver.#THRESHOLD) return null;
       direction = this.#accum < 0 ? 1 : -1;
       this.#accum = 0;
+      return { direction: invertTrackpad ? -direction : direction, isTrackpad: true };
     } else {
-      // Mouse wheel: one discrete step per notch, regardless of delta magnitude.
       direction = event.deltaY > 0 ? -1 : 1;
+      return { direction: invertMouse ? -direction : direction, isTrackpad: false };
     }
-
-    return invertScroll ? -direction : direction;
   }
 
   reset() {

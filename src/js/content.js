@@ -9,11 +9,13 @@ class ZoomController {
   #config = {
     modifierKey: 'metaKey',
     zoomStep: 0.05,
+    trackpadStepMultiplier: 0.5,
     animationSmoothing: 0.35,
     minZoom: 0.5,
     maxZoom: 2.0,
     persistZoomPerDomain: true,
-    invertScroll: false
+    invertMouse: false,
+    invertTrackpad: false
   };
 
   #domain;
@@ -88,10 +90,14 @@ class ZoomController {
     if (!event[this.#config.modifierKey]) return;
     event.preventDefault();
 
-    const direction = this.#input.resolve(event, this.#config.invertScroll);
-    if (direction === null) return;
+    const result = this.#input.resolve(event, this.#config.invertMouse, this.#config.invertTrackpad);
+    if (result === null) return;
 
-    const raw  = this.#animator.target + direction * this.#config.zoomStep;
+    const step = result.isTrackpad
+      ? this.#config.zoomStep * this.#config.trackpadStepMultiplier
+      : this.#config.zoomStep;
+
+    const raw  = this.#animator.target + result.direction * step;
     const zoom = ZoomUtils.constrain(
       ZoomUtils.snap(raw),
       this.#config.minZoom,

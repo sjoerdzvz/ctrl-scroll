@@ -259,16 +259,32 @@
                 </div>
             </div>
             
-            <!-- Scroll Direction -->
+            <!-- Advanced -->
             <div class="settings-group">
-                <h2 class="section-title">Scroll Direction</h2>
-                
+                <h2 class="section-title">Advanced</h2>
+
+                <div class="setting">
+                    <div class="label-row">
+                        <label for="trackpadMultiplier">Trackpad zoom speed</label>
+                        <span class="value"><span id="trackpadMultiplierValue">50</span>%</span>
+                    </div>
+                    <input type="range" id="trackpadMultiplier" min="10" max="200" value="50" step="10">
+                    <p class="helper-text">Scales zoom step for trackpad input (lower = slower)</p>
+                </div>
+
                 <div class="setting">
                     <div class="checkbox-group">
-                        <input type="checkbox" id="invertScroll">
-                        <label for="invertScroll" style="margin-bottom: 0;">Inverted (scroll down = zoom in) 🙃</label>
+                        <input type="checkbox" id="invertMouse">
+                        <label for="invertMouse" style="margin-bottom: 0;">Invert mouse scroll direction 🙃</label>
                     </div>
-                    <p class="helper-text">Enable for upside-down scrolling behavior</p>
+                </div>
+
+                <div class="setting">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="invertTrackpad">
+                        <label for="invertTrackpad" style="margin-bottom: 0;">Invert trackpad scroll direction 🙃</label>
+                    </div>
+                    <p class="helper-text">Enable if zooming goes the wrong way on your trackpad</p>
                 </div>
             </div>
             

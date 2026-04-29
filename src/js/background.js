@@ -93,16 +93,15 @@ class ZoomBridge {
   }
   
   /**
-   * Save zoom level for a domain to cloud storage
+   * Save zoom level for a domain to local storage (no write quota).
+   * User settings use storage.sync; per-domain zoom uses storage.local.
    */
   saveToStorage(domain, zoomLevel) {
     const storageKey = `${this.storagePrefixes.DOMAIN_ZOOM}${domain}`;
-    
-    chrome.storage.sync.set({
-      [storageKey]: zoomLevel
-    }, () => {
+
+    chrome.storage.local.set({ [storageKey]: zoomLevel }, () => {
       if (chrome.runtime.lastError) {
-        console.error('[ZoomBridge] Storage sync failed:', chrome.runtime.lastError);
+        console.error('[ZoomBridge] Storage local failed:', chrome.runtime.lastError);
       }
     });
   }
