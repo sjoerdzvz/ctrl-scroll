@@ -10,13 +10,11 @@ const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform);
 const DEFAULTS = Object.freeze({
   modifierKey: 'metaKey',
   zoomStep: 0.05,
-  trackpadStepMultiplier: 0.5,
   animationSmoothing: 0.35,
   minZoom: 0.5,
   maxZoom: 2.0,
   persistZoomPerDomain: true,
-  invertMouse: false,
-  invertTrackpad: false
+  invertScroll: false
 });
 
 class SettingsManager {
@@ -41,17 +39,14 @@ class SettingsManager {
         minZoom: document.getElementById('minZoom'),
         maxZoom: document.getElementById('maxZoom'),
         rememberZoom: document.getElementById('rememberZoom'),
-        invertMouse: document.getElementById('invertMouse'),
-        invertTrackpad: document.getElementById('invertTrackpad'),
-        trackpadMultiplier: document.getElementById('trackpadMultiplier')
+        invertScroll: document.getElementById('invertScroll')
       },
 
       displays: {
         step: document.getElementById('stepValue'),
         smoothing: document.getElementById('smoothingValue'),
         minZoom: document.getElementById('minZoomValue'),
-        maxZoom: document.getElementById('maxZoomValue'),
-        trackpadMultiplier: document.getElementById('trackpadMultiplierValue')
+        maxZoom: document.getElementById('maxZoomValue')
       }
     };
   }
@@ -65,7 +60,7 @@ class SettingsManager {
     this.dom.resetBtn.addEventListener('click', () => this.handleReset());
 
     // Sliders: update display live only
-    ['step', 'smoothing', 'minZoom', 'maxZoom', 'trackpadMultiplier'].forEach(key => {
+    ['step', 'smoothing', 'minZoom', 'maxZoom'].forEach(key => {
       const input = this.dom.inputs[key];
       if (input) {
         input.addEventListener('input', () => this.updateDisplayValues());
@@ -75,7 +70,10 @@ class SettingsManager {
 
   loadSettings() {
     chrome.storage.sync.get(DEFAULTS, (data) => {
-      this.current = data;
+      this.current = {
+        ...data,
+        invertScroll: data.invertScroll ?? data.invertMouse ?? data.invertTrackpad ?? DEFAULTS.invertScroll
+      };
       this.renderUI();
     });
   }
@@ -86,9 +84,7 @@ class SettingsManager {
     this.dom.inputs.minZoom.value = Math.round(this.current.minZoom * 100);
     this.dom.inputs.maxZoom.value = Math.round(this.current.maxZoom * 100);
     this.dom.inputs.rememberZoom.checked = this.current.persistZoomPerDomain;
-    this.dom.inputs.invertMouse.checked = this.current.invertMouse;
-    this.dom.inputs.invertTrackpad.checked = this.current.invertTrackpad;
-    this.dom.inputs.trackpadMultiplier.value = Math.round(this.current.trackpadStepMultiplier * 100);
+    this.dom.inputs.invertScroll.checked = this.current.invertScroll;
 
     this.dom.inputs.modifierKey.forEach(radio => {
       radio.checked = radio.value === this.current.modifierKey;
@@ -102,7 +98,6 @@ class SettingsManager {
     this.dom.displays.smoothing.textContent = this.dom.inputs.smoothing.value;
     this.dom.displays.minZoom.textContent = this.dom.inputs.minZoom.value;
     this.dom.displays.maxZoom.textContent = this.dom.inputs.maxZoom.value;
-    this.dom.displays.trackpadMultiplier.textContent = this.dom.inputs.trackpadMultiplier.value;
   }
 
   collectFormData() {
@@ -117,9 +112,7 @@ class SettingsManager {
       minZoom: parseInt(this.dom.inputs.minZoom.value) / 100,
       maxZoom: parseInt(this.dom.inputs.maxZoom.value) / 100,
       persistZoomPerDomain: this.dom.inputs.rememberZoom.checked,
-      invertMouse: this.dom.inputs.invertMouse.checked,
-      invertTrackpad: this.dom.inputs.invertTrackpad.checked,
-      trackpadStepMultiplier: parseInt(this.dom.inputs.trackpadMultiplier.value) / 100
+      invertScroll: this.dom.inputs.invertScroll.checked
     };
   }
 

@@ -9,13 +9,11 @@ class ZoomController {
   #config = {
     modifierKey: 'metaKey',
     zoomStep: 0.05,
-    trackpadStepMultiplier: 0.5,
     animationSmoothing: 0.35,
     minZoom: 0.5,
     maxZoom: 2.0,
     persistZoomPerDomain: true,
-    invertMouse: false,
-    invertTrackpad: false
+    invertScroll: false
   };
 
   #domain;
@@ -43,7 +41,11 @@ class ZoomController {
   async #init() {
     try {
       const stored = await ZoomUtils.loadStorage(this.#config);
-      this.#config = { ...this.#config, ...stored };
+      this.#config = {
+        ...this.#config,
+        ...stored,
+        invertScroll: stored.invertScroll ?? stored.invertMouse ?? stored.invertTrackpad ?? this.#config.invertScroll
+      };
       this.#animator.smoothing = this.#config.animationSmoothing;
 
       await this.#restoreZoom();
@@ -90,14 +92,8 @@ class ZoomController {
     if (!event[this.#config.modifierKey]) return;
     event.preventDefault();
 
-    const result = this.#input.resolve(event, this.#config.invertMouse, this.#config.invertTrackpad);
-    if (result === null) return;
-
-    const step = result.isTrackpad
-      ? this.#config.zoomStep * this.#config.trackpadStepMultiplier
-      : this.#config.zoomStep;
-
-    const raw  = this.#animator.target + result.direction * step;
+    const direction = this.#input.resolve(event, this.#config.invertScroll);
+    const raw  = this.#animator.target + direction * this.#config.zoomStep;
     const zoom = ZoomUtils.constrain(
       ZoomUtils.snap(raw),
       this.#config.minZoom,

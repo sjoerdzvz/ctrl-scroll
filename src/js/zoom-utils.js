@@ -19,15 +19,6 @@ class ZoomUtils {
     return Math.max(min, Math.min(max, value));
   }
 
-  /**
-   * Heuristic: trackpad sends continuous pixel-mode (deltaMode=0) events
-   * with small delta values. A regular mouse wheel sends large discrete deltas
-   * or deltaMode=1 (line) / deltaMode=2 (page).
-   */
-  static isTrackpad(event) {
-    return event.deltaMode === 0 && Math.abs(event.deltaY) < 50;
-  }
-
   /** Promise wrapper for chrome.storage.sync.get */
   static loadStorage(defaults) {
     return new Promise(resolve => {
@@ -39,31 +30,12 @@ class ZoomUtils {
 // ─── ScrollInputResolver ─────────────────────────────────────────────────────
 
 class ScrollInputResolver {
-  #accum = 0;
-  static #THRESHOLD = 40; // pixels to accumulate before triggering a zoom step
-
-  /**
-   * Returns { direction: +1|-1, isTrackpad: boolean } or null.
-   */
-  resolve(event, invertMouse, invertTrackpad) {
-    const isTrackpad = ZoomUtils.isTrackpad(event);
-    let direction;
-
-    if (isTrackpad) {
-      this.#accum += event.deltaY;
-      if (Math.abs(this.#accum) < ScrollInputResolver.#THRESHOLD) return null;
-      direction = this.#accum < 0 ? 1 : -1;
-      this.#accum = 0;
-      return { direction: invertTrackpad ? -direction : direction, isTrackpad: true };
-    } else {
-      direction = event.deltaY > 0 ? -1 : 1;
-      return { direction: invertMouse ? -direction : direction, isTrackpad: false };
-    }
+  resolve(event, invertScroll) {
+    const direction = event.deltaY > 0 ? -1 : 1;
+    return invertScroll ? -direction : direction;
   }
 
-  reset() {
-    this.#accum = 0;
-  }
+  reset() {}
 }
 
 // ─── ZoomAnimator ─────────────────────────────────────────────────────────────
