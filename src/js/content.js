@@ -56,13 +56,14 @@ class ZoomController {
   }
 
   async #restoreZoom() {
+    const browserZoom = await this.#loadBrowserZoom();
     let raw;
 
     if (this.#config.persistZoomPerDomain) {
       raw = await this.#loadDomainZoom();
-      if (raw == null) raw = await this.#loadBrowserZoom();
+      if (raw == null) raw = browserZoom;
     } else {
-      raw = await this.#loadBrowserZoom();
+      raw = browserZoom;
     }
 
     const zoom = ZoomUtils.constrain(
@@ -72,7 +73,16 @@ class ZoomController {
     );
 
     this.#animator.sync(zoom);
-    if (raw != null) this.#sendZoom(zoom, null);
+
+    const currentZoom = ZoomUtils.constrain(
+      ZoomUtils.snap(browserZoom ?? 1.0),
+      this.#config.minZoom,
+      this.#config.maxZoom
+    );
+
+    if (raw != null && Math.abs(currentZoom - zoom) >= 0.001) {
+      this.#sendZoom(zoom, null);
+    }
   }
 
   #loadBrowserZoom() {
