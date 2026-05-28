@@ -18,6 +18,7 @@ class ZoomBridge {
     };
     
     this.setupMessageHandling();
+    this.setupZoomChangeListener();
   }
   
   /**
@@ -29,6 +30,31 @@ class ZoomBridge {
         return this.routeMessage(request, sender, sendResponse);
       }
     );
+  }
+
+  /**
+   * Listen for zoom changes made outside the extension (e.g. Cmd+/Cmd-)
+   * and persist them so they survive navigation/refresh.
+   */
+  setupZoomChangeListener() {
+    chrome.tabs.onZoomChange.addListener(zoomChangeInfo => {
+      const { tabId, newZoomFactor } = zoomChangeInfo;
+
+      chrome.storage.sync.get({ persistZoomPerDomain: true }, settings => {
+        if (!settings.persistZoomPerDomain) return;
+
+        chrome.tabs.get(tabId, tab => {
+          if (chrome.runtime.lastError || !tab?.url) return;
+          try {
+            const domain = new URL(tab.url).hostname;
+            if (!domain) return;
+            this.saveToStorage(domain, newZoomFactor);
+          } catch {
+            // non-parseable URL (e.g. chrome:// pages), skip
+          }
+        });
+      });
+    });
   }
   
   /**
